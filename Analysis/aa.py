@@ -1,0 +1,104 @@
+import re
+import pandas as pd
+import numpy as np
+from imblearn.over_sampling import SMOTE
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.naive_bayes import MultinomialNB
+from pythainlp.tokenize import word_tokenize as wt
+from sklearn.model_selection import  train_test_split
+from sklearn.metrics import  accuracy_score
+import matplotlib.pyplot as plt
+
+import firebase_admin
+from firebase_admin import credentials, db
+
+filepath = (r"C:\Users\User\Desktop\ProjectPycharm\CollectData\CleanDataAA.csv")
+df = pd.read_csv(filepath)
+
+
+
+# x = pd.read_csv('MergeText.csv')
+x = pd.read_csv(r"C:\Users\User\Desktop\ProjectPycharm\MergeTextNewFile1.csv")
+X_train = x['X']
+Y_train = x['Y']
+
+pipeLine = Pipeline([('vect', CountVectorizer(analyzer=lambda df: wt(df))),
+                     ('tfidf', TfidfTransformer()),])
+vec_ter_x = pipeLine.fit_transform(X_train)
+
+
+# train_x, train_y = smoteData.fit_sample(vec_ter_x, Y_train)
+# nb = MultinomialNB()
+# nb.fit(train_x, train_y)
+smoteData = SMOTE(random_state=42)
+xtrain , x_test , ytrain , y_test = train_test_split(vec_ter_x , Y_train ,test_size= 0.1 , random_state=2)
+train_x_val , train_y_val =smoteData.fit_sample(xtrain,ytrain)
+nb = MultinomialNB()
+nb.fit(train_x_val , train_y_val)
+
+
+a = nb.predict(pipeLine.transform(df['text']))
+gg = np.array(a)
+listDATA = gg.tolist()
+# print(listDATA)
+pos = 0
+neg = 0
+neu = 0
+
+for i in listDATA:
+    if i == 'pos':
+        pos +=1
+    elif i == 'neu':
+        neu +=1
+    else:
+        neg +=1
+print('Pos :',pos)
+print('Neg :',neg)
+print('Neu :',neu)
+
+
+ypred = nb.predict(x_test)
+# print(classification_report(ypred, y_test))
+accuracy = accuracy_score(ypred, y_test)
+print("Accuracy score = %.2f" % accuracy)
+# plot graph  pie
+# labels = 'Positive' , 'Negative'
+# size = [pos,neg]
+# color = ['green' , 'red']
+# plt.pie(size, labels = labels , colors = color,
+#         autopct="%1.1f%%")
+# plt.axis('equal')
+# plt.show()
+#
+# # plot accuracy
+# x = ['accuracy Score']
+# score = [accuracy ]
+#
+# plt.barh(x , score , color='green')
+# plt.ylabel("My Accuracy")
+#
+# plt.show()
+
+
+
+
+# # firebase add data
+# cred = credentials.Certificate(r"C:\Users\User\Desktop\ProjectPycharm\sentimentanalysis-d39db-firebase-adminsdk-m0vr4-414c7cc0dd.json")
+# firebase_admin.initialize_app(cred,{
+#     'databaseURL' : 'https://sentimentanalysis-d39db.firebaseio.com/'
+#
+# })
+# ref = db.reference('/')
+# ref.set({
+#     'Sentiment':
+#         {
+#             'anakotmaidata':{
+#                 'pos':pos,
+#                 'neg': neg,
+#
+#             }
+#         }
+# })
+
